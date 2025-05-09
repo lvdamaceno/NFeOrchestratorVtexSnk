@@ -150,6 +150,24 @@ def snk_buscar_codigo_parceiro(cpf: str) -> Optional[str]:
 
 
 # ------------------------------------------------------------------------------
+# 🔎 Cadastro e atualização de parceiro
+# ------------------------------------------------------------------------------
+
+def snk_cadastra_atualiza_parceiro(vtex_dict):
+    # Fetch codparc Sankhya Api
+    codigo = snk_buscar_codigo_parceiro(vtex_dict['CGC_CPF'])
+
+    if codigo:
+        sucesso = snk_atualizar_dados_basicos_parceiro(codigo, vtex_dict)
+        if sucesso:
+            logging.info("✅ Cadastro atualizado com sucesso.")
+        else:
+            logging.error("❌ Falha ao atualizar o cadastro.")
+    else:
+        print("Criar funcao para cadastro do parceiro")
+
+
+# ------------------------------------------------------------------------------
 # 🔎 Consulta de códigos do endreço com dados vindos do vtex
 # ------------------------------------------------------------------------------
 
@@ -278,6 +296,69 @@ def snk_fetch_codbai(bairro) -> Optional[str]:
         return None
 
 
+def snk_fetch_codcid(cidade) -> Optional[str]:
+    token = snk_autenticar_sankhya()
+    if not token:
+        logging.error("❌ Token não obtido.")
+        return None
+
+    url = f"{BASE_URL}?serviceName=CRUDServiceProvider.loadRecords&outputType=json"
+    headers = {**HEADERS_BASE, "Authorization": f"Bearer {token}"}
+
+    payload = {
+        "serviceName": "CRUDServiceProvider.loadRecords",
+        "requestBody": {
+            "dataSet": {
+                "rootEntity": "Cidade",
+                "includePresentationFields": "N",
+                "offsetPage": "0",
+                "criteria": {
+                    "expression": {
+                        "$": f"NOMECID LIKE '{cidade}'"
+                    }
+                },
+                "entity": {
+                    "fieldset": {
+                        "list": "CODCID,NOMECID"
+                    }
+                }
+            }
+        }
+    }
+
+    try:
+        logging.info(f"🔎 Consultando cidade: {cidade}")
+        response = requests.get(url, headers=headers, json=payload)
+        response.raise_for_status()
+
+        data = response.json()
+        entity = data.get("responseBody", {}).get("entities", {}).get("entity")
+
+        if not entity:
+            logging.warning("⚠️ Nenhum resultado retornado da API.")
+            return None
+
+        # Garante que seja uma lista
+        if isinstance(entity, dict):
+            entity = [entity]
+
+        codbai = next(
+            (item.get('f0', {}).get('$') for item in entity if item.get('f0', {}).get('$')),
+            None
+        )
+
+        if codbai:
+            logging.info(f"✅ CodCid encontrado: {codbai}")
+        else:
+            logging.warning("⚠️ Nenhum CodCid foi encontrado.")
+
+        return codbai
+
+    except requests.RequestException as e:
+        logging.error(f"❌ Erro ao buscar bairro: {e}")
+        return None
+
+
 # ------------------------------------------------------------------------------
 # 📝 Atualização de dados básicos do parceiro
 # ------------------------------------------------------------------------------
@@ -291,6 +372,7 @@ def snk_atualizar_dados_basicos_parceiro(codparc: str, vtex_dict) -> bool:
     numend = vtex_dict['NUMEND']
     codend = snk_fetch_codend(vtex_dict['ENDERECO'])
     codbai = snk_fetch_codbai(vtex_dict['BAIRRO'])
+    codcid = snk_fetch_codcid(vtex_dict['CIDADE'])
 
     if not token:
         logging.error("Não foi possível obter o token de autenticação.")
@@ -318,7 +400,8 @@ def snk_atualizar_dados_basicos_parceiro(codparc: str, vtex_dict) -> bool:
                 "COMPLEMENTO",
                 "NUMEND",
                 "CODEND",
-                "CODBAI"
+                "CODBAI",
+                "CODCID"
             ],
             "records": [
                 {
@@ -335,7 +418,8 @@ def snk_atualizar_dados_basicos_parceiro(codparc: str, vtex_dict) -> bool:
                         "7": complemento,
                         "8": numend,
                         "9": codend,
-                        "10": codbai
+                        "10": codbai,
+                        "11": codcid
                     }
                 }
             ]

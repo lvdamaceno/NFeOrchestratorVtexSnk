@@ -25,7 +25,7 @@ def vtex_fetch_order_data(vtex_order_id):
 
     # Requisição GET
     try:
-        logging.info("Autenticando na API da Vtex...")
+        logging.info("🔐 Autenticando na API da Vtex...")
         response = requests.get(url, headers=headers)
 
         # Verificar e imprimir resultado

@@ -1,14 +1,17 @@
 from utils import configure_logging
 from vtex_api.client import *
-from sankhya_api.client import *
+from sankhya_api.insert import *
 
 
 def processa_cadastro_parceiro_vtex_snk(order_id):
     # Busca o dados do pedido no Vtex
     vtex_dados_cliente = vtex_fetch_client_data(order_id)
 
+    # Criar instância autenticada do cliente
+    client = SankhyaClient()
+
     # Cadastra ou atualiza parceiro no sankhya
-    snk_cadastra_atualiza_parceiro(vtex_dados_cliente)
+    snk_cadastra_atualiza_parceiro(vtex_dados_cliente, client)
 
 
 if __name__ == '__main__':

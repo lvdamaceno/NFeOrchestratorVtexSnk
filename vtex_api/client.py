@@ -6,7 +6,7 @@ import logging
 load_dotenv()
 
 
-def fetch_vtex_order_data(vtex_order_id):
+def vtex_fetch_order_data(vtex_order_id):
     # Carregar variáveis do arquivo .env
     load_dotenv()
 
@@ -36,8 +36,8 @@ def fetch_vtex_order_data(vtex_order_id):
         logging.error(response.text)
 
 
-def fetch_vtex_client_data(vtex_order_id):
-    dados = fetch_vtex_order_data(vtex_order_id)
+def vtex_fetch_client_data(vtex_order_id):
+    dados = vtex_fetch_order_data(vtex_order_id)
     cadastro_cliente = {
         "NOMEPARC": f"{dados['clientProfileData']['firstName']} {dados['clientProfileData']['lastName']}",
         "CGC_CPF": dados['clientProfileData']['document'],

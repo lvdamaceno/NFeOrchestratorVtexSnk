@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Optional
 
@@ -80,6 +81,7 @@ def snk_fetch_codigo_parceiro(cpf: str, client: SankhyaClient) -> Optional[str]:
         logging.info(f"🔎 Consultando parceiro com CPF: {cpf}")
         data = client.get(payload)
         entity = data.get("responseBody", {}).get("entities", {}).get("entity")
+        logging.debug(json.dumps(entity, indent=2, ensure_ascii=False))
         if entity and "f1" in entity:
             codigo = entity["f1"]["$"]
             logging.info(f"✅ Parceiro encontrado. Código: {codigo}")
@@ -126,6 +128,7 @@ def snk_fetch_codend(endereco: str, client: SankhyaClient) -> Optional[str]:
         logging.info(f"🔎 Consultando endereço: {endereco}")
         data = client.get(payload)
         entity = data.get("responseBody", {}).get("entities", {}).get("entity")
+        logging.debug(json.dumps(entity, indent=2, ensure_ascii=False))
 
         if not entity or not isinstance(entity, list):
             logging.warning("⚠️ Nenhum resultado retornado da API.")
@@ -174,6 +177,7 @@ def snk_fetch_codbai(bairro: str, client: SankhyaClient) -> Optional[str]:
         logging.info(f"🔎 Consultando bairro: {bairro}")
         data = client.get(payload)
         entity = data.get("responseBody", {}).get("entities", {}).get("entity")
+        logging.debug(json.dumps(entity, indent=2, ensure_ascii=False))
 
         if not entity:
             logging.warning("⚠️ Nenhum resultado retornado da API.")
@@ -226,6 +230,7 @@ def snk_fetch_codcid(cidade: str, client: SankhyaClient) -> Optional[str]:
         logging.info(f"🔎 Consultando cidade: {cidade}")
         data = client.get(payload)
         entity = data.get("responseBody", {}).get("entities", {}).get("entity")
+        logging.debug(json.dumps(entity, indent=2, ensure_ascii=False))
 
         if not entity:
             logging.warning("⚠️ Nenhum resultado retornado da API.")

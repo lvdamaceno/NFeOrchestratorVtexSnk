@@ -5,7 +5,7 @@ from sankhya_api.insert import *
 
 def processa_cadastro_parceiro_vtex_snk(order_id):
     # Busca o dados do pedido no Vtex
-    vtex_dados_cliente = vtex_fetch_client_data(order_id)
+    vtex_dados_cliente = vtex_customer_data(order_id)
 
     # Criar instância autenticada do cliente
     client = SankhyaClient()
@@ -19,4 +19,7 @@ if __name__ == '__main__':
 
     # Vtex Order Id
     vtex_order_id = '1530370503117-01'
-    processa_cadastro_parceiro_vtex_snk(vtex_order_id)
+    # processa_cadastro_parceiro_vtex_snk(vtex_order_id)
+
+    # Criar pedido no Sankhya
+    snk_cadastra_pedido_snk(vtex_order_id)

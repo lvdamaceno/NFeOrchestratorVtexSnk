@@ -1,8 +1,11 @@
+import json
 import logging
 
 from sankhya_api.auth import SankhyaClient
 from sankhya_api.fetch import snk_fetch_codigo_parceiro
 from sankhya_api.update import snk_atualizar_dados_basicos_parceiro, snk_atualizar_dados_entrega_parceiro
+from vtex_api.client import vtex_order_data
+from vtex_api.fetch import vtex_fetch_order_data
 
 
 # ------------------------------------------------------------------------------
@@ -32,5 +35,7 @@ def snk_cadastra_atualiza_parceiro(vtex_dict: dict, client: SankhyaClient):
         logging.info("🆕 Cliente não encontrado. Implementar função de cadastro.")
 
 
-
-
+def snk_cadastra_pedido_snk(vtex_order_id):
+    logging.debug('🚀 Iniciando cadastro de novo pedido')
+    order_data = vtex_order_data(vtex_order_id)
+    return order_data

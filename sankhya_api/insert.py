@@ -38,4 +38,6 @@ def snk_cadastra_atualiza_parceiro(vtex_dict: dict, client: SankhyaClient):
 def snk_cadastra_pedido_snk(vtex_order_id):
     logging.debug('🚀 Iniciando cadastro de novo pedido')
     order_data = vtex_order_data(vtex_order_id)
+
+    # Criar o pedido no Sankhya usando o dicioanario com dados do VTEX
     return order_data

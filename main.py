@@ -4,13 +4,11 @@ from sankhya_api.client import *
 
 
 def snk_cadastra_atualiza_parceiro(vtex_dict):
-    cpf = vtex_dict['CGC_CPF']
-
     # Fetch codparc Sankhya Api
-    codigo = snk_buscar_codigo_parceiro(cpf)
+    codigo = snk_buscar_codigo_parceiro(vtex_dict['CGC_CPF'])
 
     if codigo:
-        sucesso = snk_atualizar_dados_basicos_parceiro(codigo, vtex_dict['NOMEPARC'], vtex_dict['TELEFONE'], vtex_dict['CEP'])
+        sucesso = snk_atualizar_dados_basicos_parceiro(codigo, vtex_dict)
         if sucesso:
             logging.info("✅ Cadastro atualizado com sucesso.")
         else:
@@ -28,4 +26,5 @@ if __name__ == '__main__':
     # Busca o dados do pedido no Vtex
     vtex_dados_cliente = vtex_fetch_client_data(vtex_order_id)
 
+    # Cadastra ou atualiza parceiro no sankhya
     snk_cadastra_atualiza_parceiro(vtex_dados_cliente)

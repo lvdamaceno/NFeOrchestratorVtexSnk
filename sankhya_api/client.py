@@ -5,7 +5,7 @@ import requests
 
 from typing import Optional
 from dotenv import load_dotenv
-from sankhya_api.utils import limpar_telefone, limpar_cep
+from sankhya_api.utils import limpar_telefone, limpar_cep, extrair_prefixo_sufixo_logradouro, buscar_abreviacoes
 
 # ------------------------------------------------------------------------------
 # 🔧 Configurações iniciais
@@ -21,6 +21,45 @@ PASSWORD = os.getenv("SANKHYA_PASSWORD")
 BASE_URL = "https://api.sankhya.com.br/gateway/v1/mge/service.sbr"
 HEADERS_BASE = {
     "Content-Type": "application/json"
+}
+
+ABREVIACOES = {
+    "R": "Rua",
+    "R.": "Rua",
+    "Av": "Avenida",
+    "Av.": "Avenida",
+    "Trav": "Travessa",
+    "Trav.": "Travessa",
+    "TV.": "Travessa",
+    "TV": "Travessa",
+    "TVs": "Travessa",
+    "TVS": "Travessa",
+    "Al": "Alameda",
+    "Al.": "Alameda",
+    "Pç": "Praça",
+    "Pç.": "Praça",
+    "Rod": "Rodovia",
+    "Rod.": "Rodovia",
+    "Est": "Estrada",
+    "Est.": "Estrada",
+    "Jd": "Jardim",
+    "Jd.": "Jardim",
+    "Vl": "Vila",
+    "Vl.": "Vila",
+    "Baln": "Balneário",
+    "Baln.": "Balneário",
+    "Conj": "Conjunto",
+    "Conj.": "Conjunto",
+    "Res": "Residencial",
+    "Res.": "Residencial",
+    "Cond": "Condomínio",
+    "Cond.": "Condomínio",
+    "Pq": "Parque",
+    "Pq.": "Parque",
+    "St": "Setor",
+    "St.": "Setor",
+    "Lot": "Loteamento",
+    "Lot.": "Loteamento"
 }
 
 
@@ -111,11 +150,148 @@ def snk_buscar_codigo_parceiro(cpf: str) -> Optional[str]:
 
 
 # ------------------------------------------------------------------------------
+# 🔎 Consulta de códigos do endreço com dados vindos do vtex
+# ------------------------------------------------------------------------------
+
+def snk_fetch_codend(endereco) -> Optional[str]:
+    token = snk_autenticar_sankhya()
+    if not token:
+        logging.error("❌ Token não obtido.")
+        return None
+
+    endereco_prefixo, endereco_sufixo = extrair_prefixo_sufixo_logradouro(endereco)
+    abreviacoes_possiveis = buscar_abreviacoes(endereco_prefixo, ABREVIACOES)
+
+    url = f"{BASE_URL}?serviceName=CRUDServiceProvider.loadRecords&outputType=json"
+    headers = {**HEADERS_BASE, "Authorization": f"Bearer {token}"}
+
+    payload = {
+        "serviceName": "CRUDServiceProvider.loadRecords",
+        "requestBody": {
+            "dataSet": {
+                "rootEntity": "Endereco",
+                "includePresentationFields": "N",
+                "offsetPage": "0",
+                "criteria": {
+                    "expression": {
+                        "$": f"NOMEEND = '{endereco_sufixo}'"
+                    }
+                },
+                "entity": {
+                    "fieldset": {
+                        "list": "CODEND, NOMEEND, TIPO"
+                    }
+                }
+            }
+        }
+    }
+
+    try:
+        logging.info(f"🔎 Consultando endereço: {endereco}")
+        response = requests.get(url, headers=headers, json=payload)
+        response.raise_for_status()
+
+        data = response.json()
+        entity = data.get("responseBody", {}).get("entities", {}).get("entity")
+
+        if not entity or not isinstance(entity, list):
+            logging.warning("⚠️ Nenhum resultado retornado da API.")
+            return None
+
+        codend = next(
+            (item['f0']['$'] for item in entity if item['f2']['$'] in abreviacoes_possiveis),
+            None
+        )
+
+        if codend:
+            logging.info(f"✅ Codend encontrado: {codend}")
+        else:
+            logging.warning("⚠️ Nenhum codend compatível com o prefixo foi encontrado.")
+
+        return codend
+
+    except requests.RequestException as e:
+        logging.error(f"❌ Erro ao buscar endereço: {e}")
+        return None
+
+
+def snk_fetch_codbai(bairro) -> Optional[str]:
+    token = snk_autenticar_sankhya()
+    if not token:
+        logging.error("❌ Token não obtido.")
+        return None
+
+    url = f"{BASE_URL}?serviceName=CRUDServiceProvider.loadRecords&outputType=json"
+    headers = {**HEADERS_BASE, "Authorization": f"Bearer {token}"}
+
+    payload = {
+        "serviceName": "CRUDServiceProvider.loadRecords",
+        "requestBody": {
+            "dataSet": {
+                "rootEntity": "Bairro",
+                "includePresentationFields": "N",
+                "offsetPage": "0",
+                "criteria": {
+                    "expression": {
+                        "$": f"NOMEBAI LIKE '{bairro}'"
+                    }
+                },
+                "entity": {
+                    "fieldset": {
+                        "list": "CODBAI,NOMEBAI"
+                    }
+                }
+            }
+        }
+    }
+
+    try:
+        logging.info(f"🔎 Consultando bairro: {bairro}")
+        response = requests.get(url, headers=headers, json=payload)
+        response.raise_for_status()
+
+        data = response.json()
+        entity = data.get("responseBody", {}).get("entities", {}).get("entity")
+
+        if not entity:
+            logging.warning("⚠️ Nenhum resultado retornado da API.")
+            return None
+
+        # Garante que seja uma lista
+        if isinstance(entity, dict):
+            entity = [entity]
+
+        codbai = next(
+            (item.get('f0', {}).get('$') for item in entity if item.get('f0', {}).get('$')),
+            None
+        )
+
+        if codbai:
+            logging.info(f"✅ CodBai encontrado: {codbai}")
+        else:
+            logging.warning("⚠️ Nenhum CodBai foi encontrado.")
+
+        return codbai
+
+    except requests.RequestException as e:
+        logging.error(f"❌ Erro ao buscar bairro: {e}")
+        return None
+
+
+# ------------------------------------------------------------------------------
 # 📝 Atualização de dados básicos do parceiro
 # ------------------------------------------------------------------------------
 
-def snk_atualizar_dados_basicos_parceiro(codparc: str, nomeparc: str, telefone: str, cep: str) -> bool:
+def snk_atualizar_dados_basicos_parceiro(codparc: str, vtex_dict) -> bool:
     token = snk_autenticar_sankhya()
+    nomeparc = vtex_dict['NOMEPARC']
+    telefone = vtex_dict['TELEFONE']
+    cep = vtex_dict['CEP']
+    complemento = vtex_dict['COMPLEMENTO']
+    numend = vtex_dict['NUMEND']
+    codend = snk_fetch_codend(vtex_dict['ENDERECO'])
+    codbai = snk_fetch_codbai(vtex_dict['BAIRRO'])
+
     if not token:
         logging.error("Não foi possível obter o token de autenticação.")
         return False
@@ -136,21 +312,30 @@ def snk_atualizar_dados_basicos_parceiro(codparc: str, nomeparc: str, telefone: 
                 "NOMEPARC",
                 "RAZAOSOCIAL",
                 "TELEFONE",
-                "CEP",
                 "TIPPESSOA",
                 "CLIENTE",
-                "COMPLEMENTO"
+                "CEP",
+                "COMPLEMENTO",
+                "NUMEND",
+                "CODEND",
+                "CODBAI"
             ],
             "records": [
                 {
                     "pk": {"CODPARC": codparc},
                     "values": {
+                        # dados basicos
                         "1": nomeparc,
                         "2": nomeparc,
                         "3": limpar_telefone(telefone),
-                        "4": limpar_cep(cep),
-                        "5": "F",
-                        "6": "S"
+                        "4": "F",
+                        "5": "S",
+                        # dados de entrega
+                        "6": limpar_cep(cep),
+                        "7": complemento,
+                        "8": numend,
+                        "9": codend,
+                        "10": codbai
                     }
                 }
             ]
@@ -175,7 +360,8 @@ def snk_atualizar_dados_basicos_parceiro(codparc: str, nomeparc: str, telefone: 
             logging.info("✅ Atualização feita com sucesso.")
             return True
         else:
-            logging.warning(f"⚠️ API retornou status diferente de sucesso: {status} | Msg: {status_message or 'sem mensagem'}")
+            logging.warning(
+                f"⚠️ API retornou status diferente de sucesso: {status} | Msg: {status_message or 'sem mensagem'}")
             return False
 
     except requests.RequestException as e:

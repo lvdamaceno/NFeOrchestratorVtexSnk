@@ -117,6 +117,8 @@ def snk_cadastra_pedido_snk(vtex_order_id: str, client: SankhyaClient):
         resp = client.get(payload)  # Sankhya exige GET com body para este serviço
         logging.debug("🔍 Resposta completa da API Sankhya:\n" +
                       json.dumps(resp, indent=2, ensure_ascii=False))
+        nunota = resp["responseBody"]["pk"]["NUNOTA"]['$']
+        logging.debug(f"ℹ️ Nunota: {nunota}")
         status = resp.get("status")
         msg = resp.get("statusMessage", "")
 

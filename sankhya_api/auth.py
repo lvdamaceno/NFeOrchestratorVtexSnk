@@ -30,6 +30,8 @@ class SankhyaClient:
     def __init__(self):
         self.token = None
         self.headers = None
+        self.base_mge = "https://api.sankhya.com.br/gateway/v1/mge/service.sbr"
+        self.base_mgecom = "https://api.sankhya.com.br/gateway/v1/mgecom/service.sbr"
         self._autenticar()
 
     def _autenticar(self):
@@ -52,20 +54,29 @@ class SankhyaClient:
             logging.error(f"❌ Erro ao autenticar: {e}")
             raise
 
+    def _build_url(self, service_name: str) -> str:
+        # detecta serviços de e-commerce (ajuste a condição se tiver mais)
+        if service_name.startswith("CACSP."):
+            return f"{self.base_mgecom}?serviceName={service_name}&outputType=json"
+        else:
+            return f"{self.base_mge}?serviceName={service_name}&outputType=json"
+
     def get(self, payload: dict) -> dict:
         service_name = payload.get("serviceName")
         if not service_name:
-            raise ValueError("Payload precisa conter a chave 'serviceName'")
-        url = f"{BASE_URL}?serviceName={service_name}&outputType=json"
-        response = requests.get(url, headers=self.headers, json=payload)
-        response.raise_for_status()
-        return response.json()
+            raise ValueError("Payload precisa conter 'serviceName'")
+        url = self._build_url(service_name)
+        logging.debug(f"🔗 GET Sankhya → {url}")
+        resp = requests.get(url, headers=self.headers, json=payload)
+        resp.raise_for_status()
+        return resp.json()
 
     def post(self, payload: dict) -> dict:
         service_name = payload.get("serviceName")
         if not service_name:
-            raise ValueError("Payload precisa conter a chave 'serviceName'")
-        url = f"{BASE_URL}?serviceName={service_name}&outputType=json"
-        response = requests.post(url, headers=self.headers, json=payload)
-        response.raise_for_status()
-        return response.json()
+            raise ValueError("Payload precisa conter 'serviceName'")
+        url = self._build_url(service_name)
+        logging.debug(f"🔗 POST Sankhya → {url}")
+        resp = requests.post(url, headers=self.headers, json=payload)
+        resp.raise_for_status()
+        return resp.json()

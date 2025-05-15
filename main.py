@@ -13,16 +13,21 @@ def processa_cadastro_parceiro_vtex_snk(order_id):
     snk_cadastra_atualiza_parceiro(vtex_dados_cliente, client)
 
 
+def processa_pedido_fatura_nota(order_id):
+    # Atualiza ou cadatra parceiro
+    processa_cadastro_parceiro_vtex_snk(vtex_order_id)
+    # Criar pedido no Sankhya
+    snk_cadastra_pedido_snk(vtex_order_id, client)
+    # Confirma pedido no Sankhya
+    # Fatura pedido no Sankhya
+    # Envia xml para o vtex
+    # Envia email de confirmação para logística
+
+
 if __name__ == '__main__':
     # Criar instância autenticada do cliente
     client = SankhyaClient()
 
-    vtex_order_id = '1530630503119-01'  # andre
-    # vtex_order_id = '1530370503117-01'  # cruzmaltino
-
-    processa_cadastro_parceiro_vtex_snk(vtex_order_id)
-
-    # Criar pedido no Sankhya
-    snk_cadastra_pedido_snk(vtex_order_id, client)
-
-
+    vtex_order_id = '1530630503119-01'
+    # Cria pedido no Sankhya
+    processa_pedido_fatura_nota(vtex_order_id)

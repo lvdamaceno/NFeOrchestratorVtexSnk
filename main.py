@@ -17,10 +17,12 @@ if __name__ == '__main__':
     # Criar instância autenticada do cliente
     client = SankhyaClient()
 
-    vtex_order_id = '1530370503117-01'
+    vtex_order_id = '1530630503119-01'  # andre
+    # vtex_order_id = '1530370503117-01'  # cruzmaltino
+
     processa_cadastro_parceiro_vtex_snk(vtex_order_id)
 
     # Criar pedido no Sankhya
-    # snk_cadastra_pedido_snk(vtex_order_id, client)
+    snk_cadastra_pedido_snk(vtex_order_id, client)
 
 

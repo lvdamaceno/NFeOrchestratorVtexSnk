@@ -3,7 +3,8 @@ import logging
 
 from sankhya_api.auth import SankhyaClient
 from sankhya_api.fetch import snk_fetch_codigo_parceiro
-from sankhya_api.update import snk_atualizar_dados_basicos_parceiro, snk_atualizar_dados_entrega_parceiro
+from sankhya_api.update import snk_atualizar_dados_basicos_parceiro, snk_atualizar_dados_entrega_parceiro, \
+    snk_incluir_dados_basicos_parceiro, snk_incluir_dados_entrega_parceiro
 from vtex_api.builders import vtex_order_payload_data
 
 
@@ -12,27 +13,53 @@ from vtex_api.builders import vtex_order_payload_data
 # ------------------------------------------------------------------------------
 
 def snk_cadastra_atualiza_parceiro(vtex_dict: dict, client: SankhyaClient):
-    cpf = vtex_dict.get("CGC_CPF")
-    if not cpf:
-        logging.error("❌ CPF não informado no dicionário VTEX.")
-        return
+    """
+       Cadastra ou atualiza um parceiro no Sankhya a partir do dicionário VTEX.
+       Retorna True em caso de sucesso, False em caso de erro.
+       """
+    try:
+        cpf = vtex_dict.get("CGC_CPF")
+        if not cpf:
+            logging.error("❌ CPF não informado no dicionário VTEX.")
+            return False
 
-    codparc = snk_fetch_codigo_parceiro(cpf, client)
+        # Busca código do parceiro existente
+        codparc = snk_fetch_codigo_parceiro(cpf, client)
 
-    if codparc:
-        print('entrando na atualizacao')
-        atualizacoes = {
-            "atualizacao de dados básicos": snk_atualizar_dados_basicos_parceiro(codparc, vtex_dict, client),
-            "atualizacao de endereço de entrega": snk_atualizar_dados_entrega_parceiro(codparc, vtex_dict, client)
-        }
+        if codparc:
+            logging.debug("ℹ️ Começando atualização de parceiro")
+            atualizacoes = {
+                "atualização de dados básicos": snk_atualizar_dados_basicos_parceiro(codparc, vtex_dict, client),
+                "atualização de endereço de entrega": snk_atualizar_dados_entrega_parceiro(codparc, vtex_dict, client)
+            }
 
-        for descricao, sucesso in atualizacoes.items():
-            if sucesso:
-                logging.info(f"🎉 {descricao.capitalize()} atualizado com sucesso.")
-            else:
-                logging.error(f"❌ Falha ao atualizar {descricao}.")
-    else:
-        print('entrando na inclusao')
+            # Log de resultados de cada atualização
+            for descricao, sucesso in atualizacoes.items():
+                if sucesso:
+                    logging.info(f"🎉 {descricao.capitalize()} atualizado com sucesso.")
+                else:
+                    logging.error(f"❌ Falha ao atualizar {descricao}.")
+        else:
+            logging.debug("ℹ️ Nenhum parceiro encontrado, iniciando inclusão")
+
+            atualizacoes = {
+                "inserção de dados básicos": snk_incluir_dados_basicos_parceiro(cpf, vtex_dict, client),
+                "inserção de endereço de entrega": snk_incluir_dados_entrega_parceiro(vtex_dict, client),
+            }
+
+            # Log de resultados de cada atualização
+            for descricao, sucesso in atualizacoes.items():
+                if sucesso:
+                    logging.info(f"🎉 {descricao.capitalize()} inserido com sucesso.")
+                else:
+                    logging.error(f"❌ Falha ao atualizar {descricao}.")
+
+        return True
+
+    except Exception as e:
+        # Log com stack trace para facilitar debug
+        logging.error(f"🚨 Erro ao cadastrar/atualizar parceiro: {e}", exc_info=True)
+        return False
 
 
 def snk_cadastra_pedido_snk(vtex_order_id: str, client: SankhyaClient):

@@ -3,11 +3,11 @@ import logging
 
 def vtex_payment_system(payment_system):
     mapping = {
-        125: 220,
-        2: 701,
-        3: 710,
-        4: 702,
-        9: 713,
+        125: 220,  # PIX
+        2: 701,  # VISA
+        3: 710,  # DINERS
+        4: 702,  # MASTERCARD
+        9: 713,  # ELO
     }
     try:
         key = int(payment_system)

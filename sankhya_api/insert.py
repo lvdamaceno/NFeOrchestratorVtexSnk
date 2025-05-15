@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 
 from sankhya_api.auth import SankhyaClient
 from sankhya_api.fetch import snk_fetch_codigo_parceiro
@@ -91,7 +92,6 @@ def snk_cadastra_pedido_snk(vtex_order_id: str, client: SankhyaClient):
                     "CODPROD": {"$": f"{order_data['CODPROD']}"},
                     "QTDNEG": {"$":  f"{order_data['QTDNEG']}"},
                     "CODLOCALORIG": {"$": f"{order_data['CODLOCALORIG']}"},
-                    "CODVOL": {"$": "UN"},
                     "AD_MONTAGEM": {"$": "S"},
                     "AD_ENTREGAR": {"$": "S"},
                     "AD_EMPRESASAIDA": {"$": "7"},
@@ -126,7 +126,7 @@ def snk_cadastra_pedido_snk(vtex_order_id: str, client: SankhyaClient):
             logging.info("✅ Nota fiscal incluída com sucesso.")
         else:
             logging.error(f"❌ Falha ao incluir nota: status={status} | msg={msg or 'sem mensagem'}")
-        return resp
+        return nunota
     except Exception as e:
         logging.error(f"🚨 Erro ao chamar CACSP.incluirNota: {e}")
         return {"error": str(e)}

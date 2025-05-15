@@ -261,3 +261,26 @@ def snk_fetch_codcid(cidade: str, client: SankhyaClient) -> Optional[str]:
     except requests.RequestException as e:
         logging.error(f"❌ Erro ao buscar bairro: {e}")
         return None
+
+
+def snk_fetch_invoice_data(nota: str, client: SankhyaClient):
+    sql = f"SELECT sankhya.CC_VTEX_INVOICE({nota})"
+    payload = {
+        "serviceName": "DbExplorerSP.executeQuery",
+        "requestBody": {
+            "sql": sql
+        }
+    }
+
+    logging.debug("🚀 Payload de executeQuery:\n" + json.dumps(payload, indent=2, ensure_ascii=False))
+
+    try:
+        logging.info(f"🔎 Executando SQL no Sankhya: {sql}")
+        resp = client.get(payload)
+        xml = resp["responseBody"]["rows"][0][0]
+        logging.debug("🔍 Resposta completa da API Sankhya:\n" +
+                      json.dumps(xml, indent=2, ensure_ascii=False))
+        return json.loads(xml)
+    except Exception as e:
+        logging.error(f"🚨 Erro ao executar DbExplorerSP.executeQuery: {e}")
+        return {"error": str(e)}

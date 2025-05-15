@@ -1,8 +1,11 @@
 import logging
 import os
+import time
+from typing import Optional, Any
 
 import requests
 from dotenv import load_dotenv
+from requests import RequestException, Timeout
 
 load_dotenv()
 
@@ -30,6 +33,7 @@ class SankhyaClient:
     def __init__(self):
         self.token = None
         self.headers = None
+        self.timeout = 60
         self.base_mge = "https://api.sankhya.com.br/gateway/v1/mge/service.sbr"
         self.base_mgecom = "https://api.sankhya.com.br/gateway/v1/mgecom/service.sbr"
         self._autenticar()
@@ -55,21 +59,45 @@ class SankhyaClient:
             raise
 
     def _build_url(self, service_name: str) -> str:
-        # detecta serviços de e-commerce (ajuste a condição se tiver mais)
-        if service_name.startswith("CACSP."):
+        if service_name.startswith(("CACSP.", "SelecaoDocumentoSP.")):
             return f"{self.base_mgecom}?serviceName={service_name}&outputType=json"
         else:
             return f"{self.base_mge}?serviceName={service_name}&outputType=json"
 
-    def get(self, payload: dict) -> dict:
+    def get(self, payload: dict) -> Optional[Any]:
         service_name = payload.get("serviceName")
         if not service_name:
             raise ValueError("Payload precisa conter 'serviceName'")
+
         url = self._build_url(service_name)
-        logging.debug(f"🔗 GET Sankhya → {url}")
-        resp = requests.get(url, headers=self.headers, json=payload)
-        resp.raise_for_status()
-        return resp.json()
+        logging.debug(f"🔗 GET Sankhya → {url} (timeout={self.timeout}s)")
+
+        max_retries = 5
+        for attempt in range(1, max_retries + 1):
+            try:
+                resp = requests.get(
+                    url,
+                    headers=self.headers,
+                    json=payload,
+                    timeout=self.timeout
+                )
+                resp.raise_for_status()
+                return resp.json()
+
+            except Timeout:
+                logging.warning(f"⏱️ Timeout na tentativa {attempt}/{max_retries} para {service_name}")
+                if attempt == max_retries:
+                    logging.error(f"❌ Timeout após {max_retries} tentativas.")
+                    raise
+                # backoff exponencial e continua o loop
+                time.sleep(2 ** (attempt - 1))
+
+            except RequestException as e:
+                logging.error(f"🚨 Erro na requisição: {e}")
+                raise
+
+        # Se, por algum motivo, sair do loop sem retornar nem lançar, devolve None
+        return None
 
     def post(self, payload: dict) -> dict:
         service_name = payload.get("serviceName")
@@ -77,6 +105,6 @@ class SankhyaClient:
             raise ValueError("Payload precisa conter 'serviceName'")
         url = self._build_url(service_name)
         logging.debug(f"🔗 POST Sankhya → {url}")
-        resp = requests.post(url, headers=self.headers, json=payload)
+        resp = requests.post(url, headers=self.headers, json=payload, timeout=60)
         resp.raise_for_status()
         return resp.json()

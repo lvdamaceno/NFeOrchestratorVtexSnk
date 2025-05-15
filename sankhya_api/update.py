@@ -1,5 +1,7 @@
 import json
 import logging
+from datetime import datetime
+from typing import Dict
 
 import requests
 
@@ -347,3 +349,82 @@ def snk_incluir_dados_entrega_parceiro(vtex_dict, client: SankhyaClient) -> bool
     except requests.RequestException as e:
         logging.error(f"❌ Erro na requisição: {e}")
         return False
+
+
+def snk_confirmar_nota(nunota: str, client: SankhyaClient) -> Dict:
+    logging.debug(f"🚀 Iniciando confirmação de nota fiscal {nunota}")
+    payload = {
+        "serviceName": "CACSP.confirmarNota",
+        "requestBody": {
+            "nota": {
+                "NUNOTA": { "$": nunota }
+            }
+        }
+    }
+
+    try:
+        logging.info("🔎 Enviando confirmação de nota ao Sankhya…")
+        resp = client.get(payload)  # GET com corpo JSON, como no curl
+        logging.debug("🔍 Resposta completa da API Sankhya:\n" +
+                      json.dumps(resp, indent=2, ensure_ascii=False))
+
+        status = resp.get("status")
+        msg = resp.get("statusMessage", "")
+
+        if status == "0" or (status == "1" and not msg):
+            logging.info(f"✅ Nota {nunota} confirmada com sucesso.")
+        else:
+            logging.error(f"❌ Falha ao confirmar nota {nunota}: status={status} | msg={msg or 'sem mensagem'}")
+
+        return resp
+
+    except Exception as e:
+        logging.error(f"🚨 Erro ao chamar CACSP.confirmarNota: {e}")
+        return {"error": str(e)}
+
+
+def snk_faturar_nota(nunota: int, client: SankhyaClient):
+    dt_faturamento = datetime.now().strftime("%d/%m/%Y")
+
+    payload = {
+        "serviceName": "SelecaoDocumentoSP.faturar",
+        "requestBody": {
+            "notas": {
+                "codTipOper": 1101,
+                "dtFaturamento": dt_faturamento,
+                "tipoFaturamento": "FaturamentoDireto",
+                "dataValidada": True,
+                "notasComMoeda": {},
+                "nota": [{"$": nunota}],
+                "codLocalDestino": "",
+                "faturarTodosItens": True,
+                "umaNotaParaCada": "false",
+                "ehWizardFaturamento": True,
+                "dtFixaVenc": "",
+                "ehPedidoWeb": False,
+                "nfeDevolucaoViaRecusa": False,
+                "serie": 1
+            }
+        }
+    }
+
+    logging.debug("🚀 Payload de faturamento:\n" + json.dumps(payload, indent=2, ensure_ascii=False))
+
+    try:
+        logging.info(f"🔎 Faturando nota {nunota}…")
+        resp = client.get(payload)
+        logging.debug("🔍 Resposta da API Sankhya:\n" +
+                      json.dumps(resp, indent=2, ensure_ascii=False))
+        nunota = resp["responseBody"]["notas"]["nota"]["$"]
+        status = resp.get("status")
+        msg = resp.get("statusMessage", "")
+        if status == "0" or (status == "1" and not msg):
+            logging.info(f"✅ Nota {nunota} faturada com sucesso.")
+        else:
+            logging.error(f"❌ Falha ao faturar nota {nunota}: status={status} | msg={msg or 'sem mensagem'}")
+
+        return nunota
+
+    except Exception as e:
+        logging.error(f"🚨 Erro ao faturar nota {nunota}: {e}")
+        return {"error": str(e)}

@@ -4,14 +4,18 @@ from typing import Optional
 
 import requests
 
-from sankhya_api.insert import SankhyaClient
+from sankhya_api.auth import SankhyaClient
+
 from sankhya_api.utils import extrair_prefixo_sufixo_logradouro, buscar_abreviacoes
+
 
 ABREVIACOES = {
     "R": "Rua",
     "R.": "Rua",
+    "RUA": "Rua",
     "Av": "Avenida",
     "Av.": "Avenida",
+    "A": "Avenida",
     "Trav": "Travessa",
     "Trav.": "Travessa",
     "TV.": "Travessa",
@@ -19,6 +23,8 @@ ABREVIACOES = {
     "TVs": "Travessa",
     "TVS": "Travessa",
     "Al": "Alameda",
+    "ALA": "Alameda",
+    "ALAMEDA": "Alameda",
     "Al.": "Alameda",
     "Pç": "Praça",
     "Pç.": "Praça",
@@ -240,17 +246,17 @@ def snk_fetch_codcid(cidade: str, client: SankhyaClient) -> Optional[str]:
         if isinstance(entity, dict):
             entity = [entity]
 
-        codbai = next(
+        codcid = next(
             (item.get('f0', {}).get('$') for item in entity if item.get('f0', {}).get('$')),
             None
         )
 
-        if codbai:
-            logging.info(f"✅ CodCid encontrado: {codbai}")
+        if codcid:
+            logging.info(f"✅ CodCid encontrado: {codcid}")
         else:
             logging.warning("⚠️ Nenhum CodCid foi encontrado.")
 
-        return codbai
+        return codcid
 
     except requests.RequestException as e:
         logging.error(f"❌ Erro ao buscar bairro: {e}")

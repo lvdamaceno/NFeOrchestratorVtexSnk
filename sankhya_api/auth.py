@@ -16,7 +16,6 @@ PASSWORD = os.getenv("SANKHYA_PASSWORD")
 # ------------------------------------------------------------------------------
 
 
-
 BASE_URL = "https://api.sankhya.com.br/gateway/v1/mge/service.sbr"
 HEADERS_BASE = {
     "Content-Type": "application/json"

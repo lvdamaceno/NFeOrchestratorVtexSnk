@@ -4,7 +4,7 @@ import logging
 import requests
 
 from sankhya_api.auth import SankhyaClient
-from sankhya_api.fetch import snk_fetch_codend, snk_fetch_codbai, snk_fetch_codcid
+from sankhya_api.fetch import snk_fetch_codend, snk_fetch_codbai, snk_fetch_codcid, snk_fetch_codigo_parceiro
 from sankhya_api.utils import limpar_telefone, limpar_cep
 
 
@@ -102,7 +102,6 @@ def snk_atualizar_dados_basicos_parceiro(codparc: str, vtex_dict, client: Sankhy
     except requests.RequestException as e:
         logging.error(f"❌ Erro na requisição: {e}")
         return False
-
 
 # ------------------------------------------------------------------------------
 # 📝 Atualização de dados de endereço de entrega

@@ -5,6 +5,7 @@ from typing import Dict
 
 import requests
 
+from notifications.telegram import enviar_notificacao_telegram
 from sankhya_api.auth import SankhyaClient
 from sankhya_api.fetch import snk_fetch_codend, snk_fetch_codbai, snk_fetch_codcid, snk_fetch_codigo_parceiro
 from sankhya_api.utils import limpar_telefone, limpar_cep
@@ -420,8 +421,11 @@ def snk_faturar_nota(nunota: int, client: SankhyaClient):
         msg = resp.get("statusMessage", "")
         if status == "0" or (status == "1" and not msg):
             logging.info(f"✅ Nota {nunota} faturada com sucesso.")
+            enviar_notificacao_telegram("✅ Nota {nunota} faturada com sucesso.")
+
         else:
             logging.error(f"❌ Falha ao faturar nota {nunota}: status={status} | msg={msg or 'sem mensagem'}")
+            enviar_notificacao_telegram(f"❌ Falha ao faturar nota {nunota}: status={status} | msg={msg or 'sem mensagem'}")
 
         return nunota
 

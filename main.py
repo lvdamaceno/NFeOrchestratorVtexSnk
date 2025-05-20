@@ -1,3 +1,4 @@
+from notifications.telegram import enviar_notificacao_telegram
 from sankhya_api.fetch import snk_fetch_invoice_data
 from sankhya_api.update import snk_confirmar_nota, snk_faturar_nota
 from utils import configure_logging
@@ -36,6 +37,7 @@ def processa_pedido_fatura_nota(order_id):
     if resposta and resposta[0] == "s":
         logging.info("👍 Usuário confirmou envio da invoice para VTEX.")
         resultado = vtex_send_invoice(order_id, xml)
+        enviar_notificacao_telegram(f"XML da nota {nota} foi enviado para o pedido {order_id} no VTEX")
         logging.debug("Resposta VTEX:", resultado)
     else:
         logging.info("👎 Envio da invoice para VTEX cancelado pelo usuário.")
@@ -45,5 +47,5 @@ if __name__ == '__main__':
     # Criar instância autenticada do cliente
     client = SankhyaClient()
     # Cria pedido, confirma, fatura, envia para o vtex
-    vtex_order_id = '1531920503129-01'
+    vtex_order_id = '1533550503135-01'
     processa_pedido_fatura_nota(vtex_order_id)
